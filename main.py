@@ -11,28 +11,27 @@ Created on Tue Aug 26 11:25:50 2025
 import numpy as np
 from scipy.sparse import csc_matrix
 from scipy.sparse.linalg import splu
+import pickle
+import os
 
-# prepare directories of diagnostic
-
-#initialise 
-
-# while loop
+script_dir = os.path.abspath(os.path.dirname(__file__))
+os.chdir(script_dir)
 
 
 class RT_1d_simulations:
     def __init__(self):
-        self.steps_p_unit = 10
-        self.nb_units = 2
-        self.frequence = 2
+        self.steps_p_unit = 4
+        self.nb_units = 8
+        self.frequence = 2 # period of diag
     
-        self.nx = 10
-        self.xmin = -4
-        self.xmax = 4
+        self.nx = 40
+        self.xmin = -20
+        self.xmax = 20
     
-        self.Np = 3
+        self.Np = 10
         self.nv = 12
-        self.vmin = -3
-        self.vmax = 3
+        self.vmin = -6
+        self.vmax = 6
     
         self.tn = 0
         self.num = 0
@@ -74,9 +73,9 @@ class RT_1d_simulations:
         #-------------------------
         #--> project the PDF on a phase space mesh
         self.tmp_diag = np.zeros( (self.nx+1 , 2*self.nv + 1) ) # dmatrix(0, _nx, -_nv, _nv);
-        self.tmp_diag1 = np.zeros(self.nx+1) # dvector(0, _nx);
-        self.tmp_diag2 = np.zeros(self.nx+1) # dvector(0, _nx);
-        self.tmp_diag3 = np.zeros(self.nx+1) # dvector(0, _nx);
+        self.tmp_diag1 = np.zeros(self.nx+1) # dvector(0, _nx); NOT USED
+        self.tmp_diag2 = np.zeros(self.nx+1) # dvector(0, _nx); NOT USED
+        self.tmp_diag3 = np.zeros(self.nx+1) # dvector(0, _nx); NOT USED
     
         # --> Laguerre polynomials
         self.hp = np.zeros(self.nv+1) # dvector(0, _nv);
@@ -84,8 +83,8 @@ class RT_1d_simulations:
         self.hp_2 = np.zeros(self.nv+1) #dvector(0, _nv);
     
     def bc_transport(self, D):
-        D[0] = 0
-        D[-1] = 0
+        D[:,0] = 0
+        D[:,-1] = 0
         return
 
     def initialise(self):
@@ -99,7 +98,7 @@ class RT_1d_simulations:
         self.bc_transport(self.D0);
         self.bc_transport(self.C0);
 
-        return
+        return 0 
     
     def build_Am(self):
         dt = 1/self.steps_p_unit
@@ -522,31 +521,31 @@ class RT_1d_simulations:
         #A = csc_matrix((nzval, rowind, colptr), shape=(self.n, self.n))
         A = csc_matrix((self.a, self.asub, self.xa), shape=(self.n, self.n))
         
-        print("Fine build di A")
+
         
         self.lu = splu(A)
-        print("LU decomposta.\n")
+        
+        self.nx-=1
+
         
         return 
-    
-
-    
+      
     def kinetic_iteration(self, tn, dt):
         if tn == 0:
             self.build_Am()
-            print("LU costruita con successo in kinetic step!\n")
+            #print("LU costruita con successo in kinetic step!\n")
         
         #---------------------------------------------
         # create the rhs from the laguerre's coeff
         #---------------------------------------------
         i = 0;
-        for p in range(1, self.Np): #(int p = 0; p <= _Np-1; p++) {
+        for p in range(0, self.Np): #(int p = 0; p <= _Np-1; p++) {
             for k in range(1, self.nx + 2): #for (int k = 0; k <= _nx; k++) {
                 self.rhs[i-1] = self.D0[p][k];
                 i+=1;
 
         # for C-, i is already good, so fill the last half of rhs
-        for p in range(1, self.Np): # (int p = 0; p <= _Np-1; p++) {
+        for p in range(0, self.Np): # (int p = 0; p <= _Np-1; p++) {
             for k in range(1, self.nx + 2): # (int k = 0; k <= _nx; k++) {
                 self.rhs[i-1] = self.C0[p][k];
                 i+=1;
@@ -557,7 +556,8 @@ class RT_1d_simulations:
         # splu needs CSC format for sparse matrices
         
         self.rhs = (self.lu).solve(self.rhs)
-        print("Sistema risolto\n")
+        
+        #print("Sistema risolto\n")
         #---------------------------------------------
         # recreate the D0 and C0 from rhs 
         #---------------------------------------------
@@ -581,35 +581,120 @@ class RT_1d_simulations:
         
         return
     
-    def diagnostic():
+    def diagnostic(self):
+        dx = (self.xmax - self.xmin) / self.nx;
+        x= np.linspace(self.xmin, self.xmax, self.nx +1)
+        
+        dv = self.vmax / self.nv;
+        v= np.linspace(self.vmin, self.vmax, 2*self.nv +1)
+        
+        for i in range(self.nx): #(int i = 0; i <= _nx; i++) {
+            # save density: 
+            self.tmp_diag1[i] = self.D0[0,i+1] + self.C0[0,i+1];
+        
+        # definition of the first two Laguerre's polynomial
+        for j in range(self.nv + 1): # (int j = 0; j <= _nv; j++) 
+            self.hp_1[j] = 1
+            self.hp_2[j] = 0.
+
+        # Add the first coefficient times the first Laguerre's polynomial
+        for i in range(self.nx): #(int i = 0; i <= _nx; i++) {
+            self.tmp_diag[i][self.nv] = (self.D0[0][i+1] + self.C0[0][i+1]) * 0.5; # for v=0 I put the average
+            for j in range(1, self.nv + 1): #(int j = 1; j <= _nv; j++) {
+                self.tmp_diag[i][self.nv + j] = self.D0[0][i+1];
+                self.tmp_diag[i][self.nv-j] = self.C0[0][i+1];
+
+        # ADDING K = 1, ..., Np - 1 
+        #----------------------------
+        
+        for p in range(1, self.Np): #(int p = 1; p <= _Np-1; p++)  
+        
+            # Construction of the next Laguerre's polynomial
+            for j in range(self.nv+1): #(int j = 0; j <= _nv; j++)  
+                vj = j * dv;
+                self.hp[j] = ((2 * p - 1 - vj) * self.hp_1[j] - (p - 1.) * self.hp_2[j]) / p;
+             
+            # add the new term "coefficient * Laguerre poly" to the temporary diagnostic
+            for i in range(self.nx): #(int i = 0; i <= _nx; i++)  
+                self.tmp_diag[i][self.nv] += self.hp[0] * (self.D0[p+1][i+1] + self.C0[p+1][i+1]);
+                for j in range(1, self.nv +1): #(int j = 1; j <= _nv; j++)  
+                    self.tmp_diag[i][self.nv + j] += self.hp[j] * self.D0[p+1][i+1];
+                    self.tmp_diag[i][self.nv - j] += self.hp[j] * self.C0[p+1][i+1];
+        
+            # update the hermite basis
+            for j in range(self.nv + 1): #(int j = 0; j <= _nv; j++)  
+                self.hp_2[j] = self.hp_1[j];
+                self.hp_1[j] = self.hp[j];
+                
+        for i in range(self.nx): #(int i = 0; i <= _nx; i++)  
+            xi = self.xmin + i * dx;
+            for j in range(-self.nv , 0): #(int j = -_nv; j <= -1; j++)  
+                vj = j * dv;
+                maxw0 = np.exp(-np.abs(vj));
+                self.tmp_diag[i,self.nv + j] = self.tmp_diag[i,self.nv + j] * maxw0
+                #f0 = _tmp_diag[i][j] * maxw0;
+                #getf << xi << " " << vj << " " << f0 << "\n";
+             
+            for j in range(1,self.nv + 1): # (int j = 1; j <= _nv; j++)  
+                vj = j * dv;
+                maxw0 = np.exp(-np.abs(vj));
+                self.tmp_diag[i, self.nv + j] = self.tmp_diag[i, self.nv + j] * maxw0
+                #f0 = _tmp_diag[i][j] * maxw0;
+                #getf << xi << " " << vj << " " << f0 << "\n";
+             
+             # Structure of the save:
+             # 
+             #    x_i    rho(x_i)
+             #
+             # where D_p are the coefficients of the Laguerre's expansion
+        
+           # (x, rho)
+            #getm << xi << " " << _tmp_diag1[i] << "\n";
+            #getf << "\n";
+    
+
+        with open('f_'+str(self.num)+'.pkl', 'wb') as filef:
+            pickle.dump((x,v,self.tmp_diag),filef)
+            
+        with open('rho_'+str(self.num)+'.pkl', 'wb') as rfile:
+            pickle.dump((x, self.tmp_diag1),rfile)
+       
+        #print(self.tmp_diag1)
+                
+        
+        
         return
 
 
-MySimulation = RT_1d_simulations()
+MyS = RT_1d_simulations()
+
 
 print("1) Intialise the distribution function :")
-MySimulation.initialise()
+MyS.initialise()
 print("Done.\n")
 
 print("2) Save the initial data :")
-# MySimulation.diagnostic(tn, num)
+MyS.diagnostic()
+MyS.num +=1
 print("Done.\n")
 
 
-dt = 1/MySimulation.steps_p_unit
-Time = dt*MySimulation.nb_units * MySimulation.steps_p_unit
+dt = 1/MyS.steps_p_unit
+Time = dt*MyS.nb_units * MyS.steps_p_unit
 
 
-while MySimulation.tn < Time:
+while MyS.tn < Time:
     
-    MySimulation.kinetic_iteration(MySimulation.tn, dt);
+    MyS.kinetic_iteration(MyS.tn, dt);
     
-    MySimulation.tn += dt
-    MySimulation.tdiag += dt
+    MyS.tn += dt
+    MyS.tdiag += dt
     
-    print(MySimulation.tn)
-    # Diagnostic to do !
-
+    # Diagnostic 
+    if MyS.tdiag >= MyS.frequence:
+        MyS.diagnostic()
+        MyS.num+=1
+        MyS.tdiag = 0
 
 
 
