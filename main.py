@@ -2,11 +2,35 @@
 """
 Created on Tue Aug 26 11:25:50 2025
 
-@author: lucaz
+@author: LUCA ZIVIANI
 
-    Use scipy to replace superlu
-    
+@title: SIMULATION OF THE RUN AND TIMBLE EQUATION 
+
+    PARAMETERS: steps_p_unit    |   steps in time to reach t = 1
+                nb_units        |   final time
+                period          |   period of diagnostic
+                Xmax            |   interval in x [-Xmax, Xmax]
+                Vmax            |   interval in v [-Vmax, Vmax]
+                nx              |   number of x points
+                Np              |   number of v points (only for plot)
+                nv              |   number of v modes
+                chi             |   sensitivity of bacteria
+                eps             |   hydrodynamic parameter
+
+
+    OUTPUT : files .pkl with the following structure
+             - f_0.pkl
+             - f_1.pkl
+             - ...
+             - rho_0.pkl
+             - rho_1.pkl
+             - ...
+             
+             Files f_0.pkl and rho_0.pkl store the initial condition
+             Files f_i.pkl and rho_i.pkl store the solution at time i * period
+
 """
+
 
 import numpy as np
 from scipy.sparse import csc_matrix
@@ -20,28 +44,35 @@ os.chdir(script_dir)
 
 class RT_1d_simulations:
     def __init__(self):
-        self.steps_p_unit = 4
-        self.nb_units = 8
-        self.frequence = 2 # period of diag
+        """
+        
+            To be assigned after the creation of the instance
+        
+        """
+        
+        self.steps_p_unit = 0
+        self.nb_units = 0
+        self.period = 0 
     
-        self.nx = 40
-        self.xmin = -20
-        self.xmax = 20
+        self.nx = 0
+        self.xmin = 0
+        self.xmax = 0
     
-        self.Np = 10
-        self.nv = 12
-        self.vmin = -6
-        self.vmax = 6
+        self.Np = 0
+        self.nv = 0
+        self.vmin = 0
+        self.vmax = 0
     
         self.tn = 0
         self.num = 0
         self.tdiag = 0
     
-        self.chi = 0.8
+        self.chi = 0
+        self.eps = 0.
+    
+    def build(self):
         self.sigma = np.zeros(self.nx+1) # sigma = dvector(0, _nx )
         
-        self.eps = 1.
-    
         self.D0 = np.zeros((self.Np+2, self.nx+3 )) # consider p=-1 and ghost points in x
         self.C0 = np.zeros((self.Np+2, self.nx+3 )) # consider p=-1 and ghost points in x
         # _D0 = dmatrix(-1, _Np, -1, _nx + 1 );
@@ -91,8 +122,8 @@ class RT_1d_simulations:
         #dx = (self._xmax - self._xmin) / self._nx;
         x= np.linspace(self.xmin, self.xmax, self.nx +1)
         
-        self.D0[0, 1:-1] = np.exp(-0.5 * (x-1)**2) 
-        self.C0[0, 1:-1] = np.exp(-0.5 * (x-1)**2)
+        self.D0[0, 1:-1] = np.exp(-0.5 * (x-8)**2) /np.sqrt(8*np.pi)
+        self.C0[0, 1:-1] = np.exp(-0.5 * (x-8)**2) /np.sqrt(8*np.pi)
         self.sigma = np.sign(x)
         
         self.bc_transport(self.D0);
@@ -541,13 +572,13 @@ class RT_1d_simulations:
         i = 0;
         for p in range(0, self.Np): #(int p = 0; p <= _Np-1; p++) {
             for k in range(1, self.nx + 2): #for (int k = 0; k <= _nx; k++) {
-                self.rhs[i-1] = self.D0[p][k];
+                self.rhs[i] = self.D0[p][k];
                 i+=1;
 
         # for C-, i is already good, so fill the last half of rhs
         for p in range(0, self.Np): # (int p = 0; p <= _Np-1; p++) {
             for k in range(1, self.nx + 2): # (int k = 0; k <= _nx; k++) {
-                self.rhs[i-1] = self.C0[p][k];
+                self.rhs[i] = self.C0[p][k];
                 i+=1;
         #---------------------------------------------
         # Solve the system IN PLACE, IF POSSIBLE
@@ -563,15 +594,15 @@ class RT_1d_simulations:
         #---------------------------------------------
         
         i = 0;
-        for p in range(1, self.Np): #(int p = 0; p <= _Np-1; p++) {
+        for p in range(0, self.Np): #(int p = 0; p <= _Np-1; p++) {
             for k in range(1, self.nx + 2): #for (int k = 0; k <= _nx; k++) {
-                self.D0[p][k] = self.rhs[i-1];
+                self.D0[p][k] = self.rhs[i];
                 i+=1;
 
         # for C-, i is already good, so fill the last half of rhs
-        for p in range(1, self.Np): # (int p = 0; p <= _Np-1; p++) {
+        for p in range(0, self.Np): # (int p = 0; p <= _Np-1; p++) {
             for k in range(1, self.nx + 2): # (int k = 0; k <= _nx; k++) {
-                self.C0[p][k] = self.rhs[i-1];
+                self.C0[p][k] = self.rhs[i];
                 i+=1;
         
         
@@ -616,7 +647,7 @@ class RT_1d_simulations:
              
             # add the new term "coefficient * Laguerre poly" to the temporary diagnostic
             for i in range(self.nx): #(int i = 0; i <= _nx; i++)  
-                self.tmp_diag[i][self.nv] += self.hp[0] * (self.D0[p+1][i+1] + self.C0[p+1][i+1]);
+                self.tmp_diag[i][self.nv] += self.hp[0] * (self.D0[p+1][i+1] + self.C0[p+1][i+1])*0.5 ;
                 for j in range(1, self.nv +1): #(int j = 1; j <= _nv; j++)  
                     self.tmp_diag[i][self.nv + j] += self.hp[j] * self.D0[p+1][i+1];
                     self.tmp_diag[i][self.nv - j] += self.hp[j] * self.C0[p+1][i+1];
@@ -665,9 +696,45 @@ class RT_1d_simulations:
         
         return
 
+##################
+#  MAIN PROGRAM  #
+##################
 
+# DATA
+steps_p_unit = 2
+nb_units = 20
+period = 2
+
+Xmax = 20
+Vmax = 6
+nx = 41 # To be even
+Np = 20
+nv = 12
+
+chi = 0.8
+eps = 1.
+
+# My simulation
 MyS = RT_1d_simulations()
 
+MyS.steps_p_unit = steps_p_unit
+MyS.nb_units = nb_units
+MyS.period = period
+
+MyS.xmax = Xmax
+MyS.xmin = -Xmax
+MyS.vmin = -Vmax
+MyS.vmax = Vmax
+MyS.nx = nx
+MyS.Np = Np
+MyS.nv = nv
+
+MyS.chi = chi
+MyS.eps = eps
+
+MyS.build()
+
+# Start of the resolution
 
 print("1) Intialise the distribution function :")
 MyS.initialise()
@@ -678,12 +745,10 @@ MyS.diagnostic()
 MyS.num +=1
 print("Done.\n")
 
-
 dt = 1/MyS.steps_p_unit
-Time = dt*MyS.nb_units * MyS.steps_p_unit
 
 
-while MyS.tn < Time:
+while MyS.tn < nb_units:
     
     MyS.kinetic_iteration(MyS.tn, dt);
     
@@ -691,10 +756,11 @@ while MyS.tn < Time:
     MyS.tdiag += dt
     
     # Diagnostic 
-    if MyS.tdiag >= MyS.frequence:
+    if MyS.tdiag >= MyS.period:
         MyS.diagnostic()
         MyS.num+=1
         MyS.tdiag = 0
+        print(f"Time : {MyS.tn} / {nb_units}")
 
 
 

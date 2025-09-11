@@ -8,7 +8,18 @@ import os
 script_dir = os.path.abspath(os.path.dirname(__file__))
 os.chdir(script_dir)
 
-num = 1
+num = 10
+
+def mass(x,v,f):
+    dx = x[1]-x[0]
+    dv = v[1]-v[0]
+    
+    return sum(sum(f))*dx*dv
+
+def massRho(x,rho):
+    dx = x[1]-x[0]
+    
+    return sum(rho)*dx
 
 def plot_f(x, v, f):
     """
@@ -35,7 +46,7 @@ def plot_f(x, v, f):
     ax.plot_surface(xx, vv, np.transpose( f), cmap=cm.jet)
     plt.xlabel('x')
     plt.ylabel('v')
-    plt.title("Plot of f")
+    plt.title("Plot of f at i = "+str(num))
     ax.set_zlim(0, np.max(f)) 
     plt.show()
     return ax
@@ -46,10 +57,12 @@ with open('f_'+str(num)+'.pkl', 'rb') as filef:
 with open('rho_'+str(num)+'.pkl', 'rb') as rfile:
     (x, rho) = pickle.load(rfile)
 
-#plt.plot(x,rho)
+#plt.semilogy(x,rho)
 
 plot_f(x, v, f)
 
+print("mass rho = "+str(massRho(x,rho)))
+print("mass f = "+str(mass(x,v,f)))
 
 
 
