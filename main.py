@@ -4,7 +4,7 @@ Created on Tue Aug 26 11:25:50 2025
 
 @author: LUCA ZIVIANI
 
-@title: SIMULATION OF THE RUN AND TIMBLE EQUATION 
+@title: SIMULATION OF THE RUN AND TUMBLE EQUATION 
 
     PARAMETERS: steps_p_unit    |   steps in time to reach t = 1
                 nb_units        |   final time
@@ -122,8 +122,8 @@ class RT_1d_simulations:
         #dx = (self._xmax - self._xmin) / self._nx;
         x= np.linspace(self.xmin, self.xmax, self.nx +1)
         
-        self.D0[0, 1:-1] = np.exp(-0.5 * (x-8)**2) /np.sqrt(8*np.pi)
-        self.C0[0, 1:-1] = np.exp(-0.5 * (x-8)**2) /np.sqrt(8*np.pi)
+        self.D0[0, 1:-1] = np.exp(-0.5 * (x)**2) /np.sqrt(8*np.pi)
+        self.C0[0, 1:-1] = np.exp(-0.5 * (x)**2) /np.sqrt(8*np.pi)
         self.sigma = np.sign(x)
         
         self.bc_transport(self.D0);
@@ -619,9 +619,9 @@ class RT_1d_simulations:
         dv = self.vmax / self.nv;
         v= np.linspace(self.vmin, self.vmax, 2*self.nv +1)
         
-        for i in range(self.nx): #(int i = 0; i <= _nx; i++) {
+        for i in range(self.nx+1): #(int i = 0; i <= _nx; i++) {          
             # save density: 
-            self.tmp_diag1[i] = self.D0[0,i+1] + self.C0[0,i+1];
+            self.tmp_diag1[i] = self.D0[0,i+1] + self.C0[0,i+1];        # CHECK HERE: is is the half?
         
         # definition of the first two Laguerre's polynomial
         for j in range(self.nv + 1): # (int j = 0; j <= _nv; j++) 
@@ -629,7 +629,7 @@ class RT_1d_simulations:
             self.hp_2[j] = 0.
 
         # Add the first coefficient times the first Laguerre's polynomial
-        for i in range(self.nx): #(int i = 0; i <= _nx; i++) {
+        for i in range(self.nx+1): #(int i = 0; i <= _nx; i++) {      
             self.tmp_diag[i][self.nv] = (self.D0[0][i+1] + self.C0[0][i+1]) * 0.5; # for v=0 I put the average
             for j in range(1, self.nv + 1): #(int j = 1; j <= _nv; j++) {
                 self.tmp_diag[i][self.nv + j] = self.D0[0][i+1];
@@ -646,18 +646,18 @@ class RT_1d_simulations:
                 self.hp[j] = ((2 * p - 1 - vj) * self.hp_1[j] - (p - 1.) * self.hp_2[j]) / p;
              
             # add the new term "coefficient * Laguerre poly" to the temporary diagnostic
-            for i in range(self.nx): #(int i = 0; i <= _nx; i++)  
+            for i in range(self.nx+1): #(int i = 0; i <= _nx; i++)            
                 self.tmp_diag[i][self.nv] += self.hp[0] * (self.D0[p+1][i+1] + self.C0[p+1][i+1])*0.5 ;
                 for j in range(1, self.nv +1): #(int j = 1; j <= _nv; j++)  
-                    self.tmp_diag[i][self.nv + j] += self.hp[j] * self.D0[p+1][i+1];
-                    self.tmp_diag[i][self.nv - j] += self.hp[j] * self.C0[p+1][i+1];
+                    self.tmp_diag[i][self.nv + j] += self.hp[j] * self.D0[p][i+1];
+                    self.tmp_diag[i][self.nv - j] += self.hp[j] * self.C0[p][i+1];
         
             # update the hermite basis
             for j in range(self.nv + 1): #(int j = 0; j <= _nv; j++)  
                 self.hp_2[j] = self.hp_1[j];
                 self.hp_1[j] = self.hp[j];
                 
-        for i in range(self.nx): #(int i = 0; i <= _nx; i++)  
+        for i in range(self.nx): #(int i = 0; i <= _nx; i++)    # CHECK HERE: i was on nx+1 values
             xi = self.xmin + i * dx;
             for j in range(-self.nv , 0): #(int j = -_nv; j <= -1; j++)  
                 vj = j * dv;
@@ -682,12 +682,13 @@ class RT_1d_simulations:
            # (x, rho)
             #getm << xi << " " << _tmp_diag1[i] << "\n";
             #getf << "\n";
-    
+        
+        folder = "ToSteadyState_eps025/"
 
-        with open('f_'+str(self.num)+'.pkl', 'wb') as filef:
+        with open(folder+'f_'+str(self.num)+'.pkl', 'wb') as filef:
             pickle.dump((x,v,self.tmp_diag),filef)
             
-        with open('rho_'+str(self.num)+'.pkl', 'wb') as rfile:
+        with open(folder+'rho_'+str(self.num)+'.pkl', 'wb') as rfile:
             pickle.dump((x, self.tmp_diag1),rfile)
        
         #print(self.tmp_diag1)
@@ -702,17 +703,17 @@ class RT_1d_simulations:
 
 # DATA
 steps_p_unit = 2
-nb_units = 20
-period = 2
+nb_units = 400
+period = 20
 
-Xmax = 20
-Vmax = 6
-nx = 41 # To be even
-Np = 20
-nv = 12
+Xmax = 100
+Vmax = 20
+nx = 501 # To be odd
+Np = 200
+nv = 100
 
 chi = 0.8
-eps = 1.
+eps = 0.25
 
 # My simulation
 MyS = RT_1d_simulations()
@@ -748,19 +749,22 @@ print("Done.\n")
 dt = 1/MyS.steps_p_unit
 
 
-while MyS.tn < nb_units:
+while MyS.tn <= nb_units:
     
     MyS.kinetic_iteration(MyS.tn, dt);
     
     MyS.tn += dt
     MyS.tdiag += dt
     
+    #if MyS.tn > 30:
+    #    MyS.period = 5
+    
     # Diagnostic 
     if MyS.tdiag >= MyS.period:
         MyS.diagnostic()
         MyS.num+=1
         MyS.tdiag = 0
-        print(f"Time : {MyS.tn} / {nb_units}")
+        print(f"Time : {round(MyS.tn,1)} / {nb_units}")
 
 
 
