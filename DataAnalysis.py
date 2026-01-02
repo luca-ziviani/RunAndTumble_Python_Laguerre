@@ -211,9 +211,9 @@ def animate_rho(num):
 
 
 
-period = 0.2  # find it in Data.txt
+period = 20  # find it in Data.txt
 num = 20
-folder = "ToSteadyState_eps1/"
+folder = "Prove/"
 
 
 
@@ -227,21 +227,21 @@ with open(folder+'rho_'+str(num)+'.pkl', 'rb') as rfile:
 
 #ani=animate_rho(251)
 
-#ani = animate_f(251)
+ani = animate_f(21)
 # to SAVE
 #ani.save("animazione.gif", writer="pillow", fps=1)
 # for mp4, but install ffmpeg
 # ani.save("animazione.mp4", writer="ffmpeg", fps=5)
 
-plt.semilogy(x,rho, label = r"$\rho(x)$")
+#plt.semilogy(x,rho, label = r"$\rho(x)$", color = 'black')
 
-dx = x[1]-x[0]
-#y=  np.exp(-0.8/2*np.abs(x)) /( sum(np.exp(-0.8/2*np.abs(x))) *dx)  # perché /4 e non /2 !!!!
-y = np.abs(x)**0.25*np.exp(-2*np.sqrt(1.8) *np.abs(x)**0.5) /( sum(np.abs(x)**0.25*np.exp(-2*np.sqrt(1.8) *np.abs(x)**0.5) )*dx)
-plt.semilogy(x, y, label = r"$|x|^{1/4}\exp(-2\sqrt{1+\chi}|x|^{1/2})$", color = "black")
-plt.xlabel("x", fontsize=15)
-plt.title("t = "+str(num*period))
-plt.legend()
+#dx = x[1]-x[0]
+#y=  np.exp(-0.8*np.abs(x)) /( sum(np.exp(-0.8*np.abs(x))) *dx)  # perché /4 e non /2 !!!!
+#y = np.abs(x)**0.25*np.exp(-2*np.sqrt(1.8) *np.abs(x)**0.5) /( sum(np.abs(x)**0.25*np.exp(-2*np.sqrt(1.8) *np.abs(x)**0.5) )*dx)
+#plt.semilogy(x, y, label = r"$|x|^{1/4}\exp(-2\sqrt{1+\chi}|x|^{1/2})$", color = "blue")
+#plt.xlabel("x", fontsize=15)
+#plt.title("t = "+str(num*period))
+#plt.legend()
 
 
 #plot_f(x, v, f,True)

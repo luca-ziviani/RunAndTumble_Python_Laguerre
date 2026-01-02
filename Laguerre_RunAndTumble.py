@@ -707,7 +707,7 @@ class RT_1d_simulations:
             #getm << xi << " " << _tmp_diag1[i] << "\n";
             #getf << "\n";
         
-        folder = "ToSteadyState_eps025/"
+        folder = "Prove/"
 
         with open(folder+'f_'+str(self.num)+'.pkl', 'wb') as filef:
             pickle.dump((x,v,self.tmp_diag),filef)
@@ -722,7 +722,7 @@ class RT_1d_simulations:
 ##################
 
 # DATA
-steps_p_unit = 2
+steps_p_unit = 1
 nb_units = 400
 period = 20
 
@@ -733,7 +733,7 @@ Np = 200
 nv = 100
 
 chi = 0.8
-eps = 0.25
+eps = 0.01
 
 # My simulation
 MyS = RT_1d_simulations()
