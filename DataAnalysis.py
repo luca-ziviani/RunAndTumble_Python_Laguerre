@@ -78,11 +78,55 @@ def color_f(x, v, f, log = False):
     plt.ylabel('v')
     #plt.title("Plot of f at t = " + str(num*20) + r", $\epsilon = 0.1$")
     plt.title("t = " + str(num*period))
-    plt.clim(0,0.15)
+    #plt.clim(0,0.15)
     plt.show()
     
     return
     
+
+def surface_plot_f(x, v, f,log=False):
+    [xx, vv] = np.meshgrid(x, v)  
+    fig = plt.figure(figsize=(10, 7))
+    ax = fig.add_subplot(111, projection='3d')
+    
+    # Transpose f to match meshgrid dimensions if necessary
+    # In your original code, you used np.transpose(f)
+    f_plot = np.transpose(f[1:-1, 1:-1])
+    x_plot = xx[1:-1, 1:-1]
+    v_plot = vv[1:-1, 1:-1]
+
+    if log:
+        # Use a logarithmic color scale
+        surf = ax.plot_surface(x_plot, v_plot, np.log10(f_plot), 
+                               cmap=cm.viridis, 
+                               norm=LogNorm() if not log else None, # LogNorm is tricky with log10 data
+                               antialiased=True)
+        plt.title(f"t = {num*period}", fontsize=15)
+    else:
+        # Use standard linear scale
+        surf = ax.plot_surface(x_plot, v_plot, f_plot, 
+                               cmap=cm.viridis, 
+                               linewidth=0, 
+                               antialiased=True)
+        plt.title(f"Plot of f at t = {num*period}, $\epsilon = 0.1$")
+
+    # Add the colorbar
+    # shrink and aspect control the size of the bar
+    cbar = fig.colorbar(surf, ax=ax, shrink=0.5, aspect=10, pad=0.1)
+    #cbar.set_label('f magnitude', rotation=270, labelpad=15)
+
+    # Z-axis styling
+    z_ticks = [-5, -10, -15, -20]
+    z_labels = [r"$10^{-5}$", r"$10^{-10}$", r"$10^{-15}$", r"$10^{-20}$"]
+    ax.set_zticks(z_ticks)  
+    ax.set_zticklabels(z_labels)
+    
+    ax.set_xlabel('x', fontsize=10)
+    ax.set_ylabel('v', fontsize=10)
+    ax.view_init(elev=36, azim=30)
+    
+    plt.show()
+    return ax
 
 def plot_f(x, v, f,log=False):
     """
@@ -211,9 +255,9 @@ def animate_rho(num):
 
 
 
-period = 20  # find it in Data.txt
-num = 20
-folder = "Prove/"
+period = 0.2  # find it in Data.txt
+num = 250
+folder = "AnimationData_eps01/"
 
 
 
@@ -227,7 +271,7 @@ with open(folder+'rho_'+str(num)+'.pkl', 'rb') as rfile:
 
 #ani=animate_rho(251)
 
-ani = animate_f(21)
+#ani = animate_f(21)
 # to SAVE
 #ani.save("animazione.gif", writer="pillow", fps=1)
 # for mp4, but install ffmpeg
@@ -244,7 +288,7 @@ ani = animate_f(21)
 #plt.legend()
 
 
-#plot_f(x, v, f,True)
+#surface_plot_f(x, v, f,True)
 
 #color_f(x, v, f)
 
@@ -252,6 +296,8 @@ ani = animate_f(21)
 #print("mass f = "+str(mass(x,v,f)))
 
 
-
-
+for num in [0,5,30,60,125,250]:
+    with open(folder+'f_'+str(num)+'.pkl', 'rb') as filef:
+        (x, v, f)= pickle.load(filef)
+    color_f(x, v, f)
 
