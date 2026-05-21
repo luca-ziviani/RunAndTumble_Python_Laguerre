@@ -7,6 +7,8 @@ $$\partial_tf (t,x,v)+ v\cdot\nabla_x f (t,x,v)= \mathcal{M}(v) \int_{\mathbb{R}
 For the theoretical background and mathematical framework underpinning this simulation, please refer to the pre-print:
 [arXiv:2505.08061](https://arxiv.org/pdf/2505.08061)
 
+https://github.com/user-attachments/assets/32e6685a-ab83-405d-ba50-e0480057cfdb
+
 The function $f$ represent the density in the phase space of bacteria moving through space and altering their velocity based on environmental gradients of chemotactic substances. The code simulates the evolution of $f$ in time. We suppose that the density of such chemotactic substance is concentrating around the origin and is exponentially decreasing in space. The presence of the substance is 'felt' by the bacteria thanks to the function $\Lambda$, which modules how they decide to reorient. Bacteria are attracted by this substance and they tend to accumulate around the origin as well. The function $\mathcal{M}= \mathcal{M}(v)$ tells us how bacteria choose a new velocity at every turn: it represent the probability distribution of the new velocity. 
 
 The main interest of this project is the shape of the equilibrium state, that is the distribution the bactieria density $f$ reaches for large times $T\to\infty$. 
